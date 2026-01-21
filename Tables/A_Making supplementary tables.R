@@ -2,21 +2,44 @@ library(dplyr)
 library(readxl)
 library(data.table)
 
-gene_annotation_file <- "data/ABHD11_paper/Differentially_expressed_genes.csv"
+gene_annotation_file <- "ABHD11_paper/Differentially_expressed_genes.csv"
 genes <- fread(gene_annotation_file)
 genes<-dplyr::select(genes,ensembl_gene_id,external_gene_name)
 
 
 # Supplementary table 1 - differential expression analysis ----------------
 
-st_1<-fread("Analysis/differential_expression_analysis_full_results.csv")
+st_1<-fread("ABHD11 paper/Analysis/Results.csv")
 
-st_1<-dplyr::select(st_1,external_gene_name,Synonyms,ensembl_gene_id,ID,FC,`P.Value`)
+#Annotate with Entrez gene ID
+st_1_ref <- read.delim("Ensembl/GPL10558-50081.txt", quote="")
+
+st_1<-merge(st_1,st_1_ref,by.x="Probe_Id",by.y="ID")
+
+#Get Ensembl ID
+ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+genes <- getBM(filters="entrezgene_id", 
+               attributes=c("ensembl_gene_id","entrezgene_id","external_gene_name",
+                            "chromosome_name","start_position","end_position"), 
+               values=unique(na.omit(st_1$Entrez_Gene_ID)), 
+               mart=ensembl,
+               useCache = FALSE)
+
+st_1<-merge(st_1,genes,by.x="Entrez_Gene_ID",by.y="entrezgene_id",all.x=T)
+
+st_1$FC <- exp(st_1$logFC)
+
+st_1<-dplyr::select(st_1,Symbol.x,Synonyms,ensembl_gene_id,Probe_Id,FC,`P.Value`)
 
 colnames(st_1)<-c("Gene","Synonyms","Ensembl gene ID","Illumina microarray probe ID","Fold change","P-value")
 
 st_1$`Fold change`<-round(st_1$`Fold change`,digits=2)
 st_1$`P-value`<-signif(st_1$`P-value`,digits=3)
+
+st_1 <- st_1 %>%
+  mutate(across(where(is.character), ~ na_if(.x, "")))
+
+st_1<-st_1[order(st_1$Gene),]
 
 # Supplementary table 2 - F stats and r2 ----------------------------------
 
@@ -46,6 +69,11 @@ colnames(st_3)<-c("Gene","Ensembl gene ID","eQTL Dataset","CRC Subtype","SNP", "
 st_3$`eQTL Dataset`<-gsub("GTExColon","GTEx",st_3$`eQTL Dataset`)
 
 st_3$`CRC Subtype`<-stringr::str_to_title(st_3$`CRC Subtype`)
+
+st_3$Beta_Exposure<-round(st_3$Beta_Exposure,digits=2)
+st_3$SE_Exposure<-round(st_3$SE_Exposure,digits=2)
+st_3$Beta_Outcome<-round(st_3$Beta_Outcome,digits=2)
+st_3$SE_Outcome<-round(st_3$SE_Outcome,digits=2)
 
 
 # Supplementary table 4 - MR results --------------------------------------
@@ -145,4 +173,4 @@ for (sheet_name in names(tables)) {
   writeData(wb, sheet_name, tables[[sheet_name]])
 }
 
-saveWorkbook(wb, file = "Supplementary_tables.xlsx", overwrite = TRUE)
+saveWorkbook(wb, file = "ABHD11 paper/Supplementary_tables.xlsx", overwrite = TRUE)
