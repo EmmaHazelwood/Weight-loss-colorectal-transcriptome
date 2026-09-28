@@ -19,7 +19,7 @@ is_palindromic <- function(a1, a2) {
 }
 
 # Function to perform proxy SNP lookup
-find_proxy_snps <- function(snps_for_proxy, exposure_dat, outcome_snps, token = "a563a6f57fcc") {
+find_proxy_snps <- function(snps_for_proxy, exposure_dat, outcome_snps, token = Sys.getenv("LDLINK_TOKEN")) {
   proxySNPs <- data.frame(matrix(ncol = 4, nrow = 0))
   colnames(proxySNPs) <- c("missing_snp", "RS_Number", "REF", "ALT")
   
@@ -564,14 +564,14 @@ run_eqtlgen_analysis <- function(outcome_file, outcome_snps, outcome_type, ld_to
 # Define outcome datasets
 outcomes <- list(
   colon = list(
-    file = "/projects/MRC_IEU/research/projects/icep2/wp2/005/working/data/gecco/annotated/colon_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
+    file = "data/gecco/annotated/colon_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
     name = "colon",
-    temp_file = "/home/sw20203/MiniProject2/genexpression/Proxy/tempcolon.csv",
+    temp_file = file.path(tempdir(), "tempcolon.csv"),
     n_cases = 28736,
     n_controls = 43099
   ),
   overall = list(
-    file = "/projects/MRC_IEU/research/projects/icep2/wp2/049/working/data/Fernandez-Rozadilla/GCST90255675_buildGRCh37.tsv",
+    file = "data/Fernandez-Rozadilla/GCST90255675_buildGRCh37.tsv",
     name = "overall",
     snp_col = "variant_id",
     beta_col = "beta",
@@ -584,29 +584,30 @@ outcomes <- list(
     n_controls = 107143
   ),
   distal = list(
-    file = "/projects/MRC_IEU/research/projects/icep2/wp2/005/working/data/gecco/annotated/distal_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
+    file = "data/gecco/annotated/distal_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
     name = "distal",
-    temp_file = "/home/sw20203/MiniProject2/genexpression/Proxy/tempdistal.csv",
+    temp_file = file.path(tempdir(), "tempdistal.csv"),
     n_cases = 12879,
     n_controls = 43099
   ),
   proximal = list(
-    file = "/projects/MRC_IEU/research/projects/icep2/wp2/005/working/data/gecco/annotated/proximal_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
+    file = "data/gecco/annotated/proximal_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
     name = "proximal",
-    temp_file = "/home/sw20203/MiniProject2/genexpression/Proxy/tempproximal.csv",
+    temp_file = file.path(tempdir(), "tempproximal.csv"),
     n_cases = 14416,
     n_controls = 43099
   ),
   rectal = list(
-    file = "/projects/MRC_IEU/research/projects/icep2/wp2/005/working/data/gecco/annotated/rectal_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
+    file = "data/gecco/annotated/rectal_CRC_GWAS_noUKBio_summary_stats_annotated.txt",
     name = "rectal",
-    temp_file = "/home/sw20203/MiniProject2/genexpression/Proxy/temprectal.csv",
+    temp_file = file.path(tempdir(), "temprectal.csv"),
     n_cases = 14150,
     n_controls = 43099
   )
 )
 
-ld_token <- "a563a6f57fcc"
+# LDlink API token read from the environment, e.g. Sys.setenv(LDLINK_TOKEN = "...") or ~/.Renviron
+ld_token <- Sys.getenv("LDLINK_TOKEN")
 
 # Define sample sizes for each dataset
 sample_sizes <- list(
@@ -640,7 +641,7 @@ for (outcome_name in names(outcomes)) {
     
     temp_crc$Freq1 <- NA
     
-    temp_file <- "/home/sw20203/MiniProject2/genexpression/Proxy/tempoverall.csv"
+    temp_file <- file.path(tempdir(), "tempoverall.csv")
     fwrite(temp_crc, temp_file, quote = FALSE)
     outcome_file <- temp_file
     outcome_snps <- temp_crc$SNP
@@ -650,9 +651,9 @@ for (outcome_name in names(outcomes)) {
   }
   
   # Define data directories
-  gtex_dir <- "/projects/MRC_IEU/research/projects/icep2/wp2/034/working/data/ABHD11_paper/GTEx"
-  barc_dir <- "/projects/MRC_IEU/research/projects/icep2/wp2/034/working/data/ABHD11_paper/BARCUVa-Seq"
-  eqtlgen_dir <- "/projects/MRC_IEU/research/projects/icep2/wp2/034/working/data/ABHD11_paper/eQTLGen"
+  gtex_dir <- "data/ABHD11_paper/GTEx"
+  barc_dir <- "data/ABHD11_paper/BARCUVa-Seq"
+  eqtlgen_dir <- "data/ABHD11_paper/eQTLGen"
   
   # Run GTEx colon total eQTL analysis
   run_tissue_eqtl_analysis(

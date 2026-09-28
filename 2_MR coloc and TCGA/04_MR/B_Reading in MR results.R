@@ -3,9 +3,17 @@ library(tidyverse)
 
 # Read all MR result files
 print("Reading MR result files...")
-tbl_fread <- list.files(pattern = "_MR_Results.csv$") %>% 
+tbl_fread <- list.files(pattern = "_(overall|colon|proximal|distal|rectal)_MR_Results\\.csv$") %>% 
   map_df(~fread(.))
 tbl_fread <- as.data.frame(tbl_fread)
+
+gene_annotation_file <- "data/ABHD11_paper/Differentially_expressed_genes.csv"
+
+# Keep only genes in the differentially expressed gene list
+tbl_fread <- tbl_fread[tbl_fread$id.exposure %in% fread(gene_annotation_file)$ensembl_gene_id, ]
+
+# BH across all distinct MR tests; must run before the annotation merge, which duplicates genes with several probes
+tbl_fread$bh_p <- p.adjust(tbl_fread$pval, method = "BH")
 
 print(paste("Total results loaded:", nrow(tbl_fread)))
 print(paste("Unique genes:", length(unique(tbl_fread$id.exposure))))
@@ -14,7 +22,6 @@ print(paste("Exposure types:", paste(unique(tbl_fread$type), collapse = ", ")))
 
 # Load gene annotation file (if available)
 # This should map Ensembl IDs to gene names
-gene_annotation_file <- "data/ABHD11_paper/Differentially_expressed_genes.csv"
 
 if (file.exists(gene_annotation_file)) {
   print("Loading gene annotations...")
@@ -32,11 +39,6 @@ if (file.exists(gene_annotation_file)) {
   print(paste("Expected location:", gene_annotation_file))
 }
 
-# Calculate Benjamini-Hochberg adjusted p-values
-print("Calculating FDR-adjusted p-values...")
-
-# Adjust p-values globally across all tests 
-tbl_fread$bh_p <- p.adjust(tbl_fread$pval, method = "BH")
 
 # Sort by adjusted p-value
 tbl_fread <- tbl_fread[order(tbl_fread$bh_p), ]

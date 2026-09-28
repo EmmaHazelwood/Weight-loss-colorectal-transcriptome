@@ -1,6 +1,7 @@
 library(dplyr)
 library(readxl)
 library(data.table)
+library(biomaRt)
 
 gene_annotation_file <- "ABHD11_paper/Differentially_expressed_genes.csv"
 genes <- fread(gene_annotation_file)
@@ -27,13 +28,14 @@ genes <- getBM(filters="entrezgene_id",
 
 st_1<-merge(st_1,genes,by.x="Entrez_Gene_ID",by.y="entrezgene_id",all.x=T)
 
-st_1$FC <- exp(st_1$logFC)
+st_1$FC <- 2^st_1$logFC
 
-st_1<-dplyr::select(st_1,Symbol.x,Synonyms,ensembl_gene_id,Probe_Id,FC,`P.Value`)
+st_1<-dplyr::select(st_1,Symbol.x,Synonyms,ensembl_gene_id,Probe_Id,FC,logFC,`P.Value`)
 
-colnames(st_1)<-c("Gene","Synonyms","Ensembl gene ID","Illumina microarray probe ID","Fold change","P-value")
+colnames(st_1)<-c("Gene","Synonyms","Ensembl gene ID","Illumina microarray probe ID","Fold change","log2 fold change","P-value")
 
 st_1$`Fold change`<-round(st_1$`Fold change`,digits=2)
+st_1$`log2 fold change`<-round(st_1$`log2 fold change`,digits=3)
 st_1$`P-value`<-signif(st_1$`P-value`,digits=3)
 
 st_1 <- st_1 %>%
@@ -47,7 +49,7 @@ st_2<-fread("MR_Results/instrument_strength_summary.csv")
 
 st_2<-merge(st_2,genes,by.x = "gene",by.y = "ensembl_gene_id",all.x=T)
 
-st_2<-dplyr::select(st_2,gene,external_gene_name,dataset,n_snps,r2,F_statistic)
+st_2<-dplyr::select(st_2,external_gene_name,gene,dataset,n_snps,r2,F_statistic)
 
 colnames(st_2)<-c("Gene","Ensembl gene ID","eQTL Dataset","Number of SNPs","r2","F-statistic")
 
@@ -84,7 +86,8 @@ st_4$OR<-exp(st_4$b)
 st_4$LCI<-exp(st_4$b-1.96*st_4$se)
 st_4$UCI<-exp(st_4$b+1.96*st_4$se)
 
-st_4<-dplyr::select(st_4,ILMN_Gene,ensembl_gene_id,type,id.outcome,method,nsnp,OR,LCI,UCI,pval,bh_p)
+st_4<-dplyr::select(st_4,external_gene_name,ensembl_gene_id,type,id.outcome,method,nsnp,OR,LCI,UCI,pval,bh_p)
+st_4<-dplyr::distinct(st_4)
 
 colnames(st_4)<-c("Gene","Ensembl gene ID","eQTL Dataset","CRC Subtype","Method", "Number of SNPs","Odds ratio","Lower 95% confidence interval","Upper 95% confidence interval","P-value","FDR-corrected P-value")
 
@@ -132,20 +135,20 @@ st_5$H4<-round(st_5$H4,digits=2)
 
 st_6 <- data.frame(
   Site = c(
-    "Colon", "Colon", "Colon",
-    "Rectum", "Rectum", "Rectum"
+    "Colon", "Colon",
+    "Rectum", "Rectum"
   ),
   Gene = c(
-    "CHMP2A", "ABHD11", "ATP5MC2",
-    "CHMP2A", "ABHD11", "ATP5MC2"
+    "CHMP2A", "ABHD11",
+    "CHMP2A", "ABHD11"
   ),
   Fold_change_normal_vs_tumour = c(
-    1.28, 1.90, 1.46, 
-    1.35, 7.87, 1.28
+    1.28, 1.90,
+    1.35, 7.87
   ),
   P_value_normal_vs_tumour = c(
-    1.41e-6, 4.39e-25, 2.38e-14, 
-    2.58e-12, 1.47e-60, 1.31e-7
+    1.41e-6, 4.39e-25,
+    2.58e-12, 1.47e-60
   )
 )
 

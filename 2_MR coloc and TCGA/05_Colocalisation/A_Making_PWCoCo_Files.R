@@ -32,6 +32,8 @@ sig_results <- mr_results %>% filter(bh_p < 0.05)
 
 # eQTLGen
 eqtl_results <- sig_results %>% filter(type == "eQTLGen")
+# Only create files for analyses without existing PWCoCo results
+eqtl_results <- eqtl_results[!file.exists(paste0(eqtl_results$ensembl_gene_id, "_", eqtl_results$id.outcome, "_eQTLGen_coloc.coloc")), ]
 
 if (nrow(eqtl_results) > 0) {
   for (i in 1:nrow(eqtl_results)) {
@@ -61,7 +63,10 @@ if (nrow(eqtl_results) > 0) {
       variants_query <- paste0(lead_chr, ":", window_start, "-", window_end)
       snps <- associations(id = eqtl_id, variants = variants_query)
       
-      if (nrow(snps) == 0) next
+      if (!is.data.frame(snps) || nrow(snps) == 0) {
+        message("No eQTLGen data returned for ", eqtl_id, " - check OpenGWAS authentication (OPENGWAS_JWT)")
+        next
+      }
       
       # Format exposure data for harmonization
       exposure_dat <- format_data(
@@ -154,33 +159,8 @@ if (nrow(eqtl_results) > 0) {
       outcome_out$n <- sample_sizes[[outcome_type]]$total
       outcome_out$case <- sample_sizes[[outcome_type]]$cases
       
-      # Create LocusZoom files
-      exposure_lz <- dat %>%
-        dplyr::select(
-          SNP=SNP,
-          chromosome = chr.exposure,
-          position = pos.exposure,
-          ref = other_allele.exposure,
-          alt = effect_allele.exposure,
-          pvalue = pval.exposure
-        ) %>%
-        arrange(chromosome, position)
-      
-      outcome_lz <- dat %>%
-        dplyr::select(
-          SNP=SNP,
-          chromosome = chr.exposure,
-          position = pos.exposure,
-          ref = other_allele.outcome,
-          alt = effect_allele.outcome,
-          pvalue = pval.outcome
-        ) %>%
-        arrange(chromosome, position)
-      
       fwrite(exposure_out, paste0(gene_id, "_", outcome_type, "_eQTLGen_exposure.csv"))
       fwrite(outcome_out, paste0(gene_id, "_", outcome_type, "_eQTLGen_outcome.csv"))
-      fwrite(exposure_lz, paste0(gene_id, "_", outcome_type, "_eQTLGen_exposure_locuszoom.txt"), sep = "\t")
-      fwrite(outcome_lz, paste0(gene_id, "_", outcome_type, "_eQTLGen_outcome_locuszoom.txt"), sep = "\t")
       
     }, error = function(e) {
       print(paste("ERROR:", e$message))
@@ -190,6 +170,8 @@ if (nrow(eqtl_results) > 0) {
 
 # BARC
 barc_results <- sig_results %>% filter(type == "BARC")
+# Only create files for analyses without existing PWCoCo results
+barc_results <- barc_results[!file.exists(paste0(barc_results$ensembl_gene_id, "_", barc_results$id.outcome, "_BARC_coloc.coloc")), ]
 
 if (nrow(barc_results) > 0) {
   barc_full <- fread("data/BARCUVa-Seq/barcuvaseq.eqtls.allpairs.sumstats.txt")
@@ -319,33 +301,8 @@ if (nrow(barc_results) > 0) {
       outcome_out$n <- sample_sizes[[outcome_type]]$total
       outcome_out$case <- sample_sizes[[outcome_type]]$cases
       
-      # Create LocusZoom files 
-      exposure_lz <- dat %>%
-          dplyr::select(
-          SNP=SNP,
-          chromosome = chr.exposure,
-          position = pos.exposure,
-          ref = other_allele.exposure,
-          alt = effect_allele.exposure,
-          pvalue = pval.exposure
-        ) %>%
-        arrange(chromosome, position)
-      
-      outcome_lz <- dat %>%
-          dplyr::select(
-          SNP=SNP,
-          chromosome = chr.exposure,
-          position = pos.exposure,
-          ref = other_allele.outcome,
-          alt = effect_allele.outcome,
-          pvalue = pval.outcome
-        ) %>%
-        arrange(chromosome, position)
-      
       fwrite(exposure_out, paste0(gene_id, "_", outcome_type, "_BARC_exposure.csv"))
       fwrite(outcome_out, paste0(gene_id, "_", outcome_type, "_BARC_outcome.csv"))
-      fwrite(exposure_lz, paste0(gene_id, "_", outcome_type, "_BARC_exposure_locuszoom.txt"), sep = "\t")
-      fwrite(outcome_lz, paste0(gene_id, "_", outcome_type, "_BARC_outcome_locuszoom.txt"), sep = "\t")
       
     }, error = function(e) {
       print(paste("ERROR:", e$message))
@@ -355,10 +312,12 @@ if (nrow(barc_results) > 0) {
 
 # GTEx Colon
 gtex_results <- sig_results %>% filter(type == "GTExColon")
+# Only create files for analyses without existing PWCoCo results
+gtex_results <- gtex_results[!file.exists(paste0(gtex_results$ensembl_gene_id, "_", gtex_results$id.outcome, "_GTExColon_coloc.coloc")), ]
 
 if (nrow(gtex_results) > 0) {
   gtex_full <- fread("data/GTEx-Colon/GTExMetaAnalysisResultsFixed.csv")
-  snp_info <- fread("data/GTEx-Colon/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.lookup_table.txt")
+  snp_info <- fread("data/GTEx-Colon/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv_Analysis_Freeze.lookup_table.txt", select = c("variant_id", "rs_id_dbSNP151_GRCh38p7", "chr", "variant_pos", "ref", "alt"))
   
   gtex_full$phenotype_id<-substr(gtex_full$phenotype_id,1,15)
   gtex_full<-gtex_full[gtex_full$phenotype_id %in% gtex_results$ensembl_gene_id,]
@@ -562,33 +521,8 @@ if (nrow(gtex_results) > 0) {
       outcome_out$n <- sample_sizes[[outcome_type]]$total
       outcome_out$case <- sample_sizes[[outcome_type]]$cases
       
-      # Create LocusZoom files 
-      exposure_lz <- dat %>%
-          dplyr::select(
-          SNP=SNP,
-          chromosome = chr.exposure,
-          position = pos.exposure,
-          ref = other_allele.exposure,
-          alt = effect_allele.exposure,
-          pvalue = pval.exposure
-        ) %>%
-        arrange(chromosome, position)
-      
-      outcome_lz <- dat %>%
-          dplyr::select(
-          SNP=SNP,
-          chromosome = chr.exposure,
-          position = pos.exposure,
-          ref = other_allele.outcome,
-          alt = effect_allele.outcome,
-          pvalue = pval.outcome
-        ) %>%
-        arrange(chromosome, position)
-      
       fwrite(exposure_out, paste0(gene_id, "_", outcome_type, "_GTExColon_exposure.csv"))
       fwrite(outcome_out, paste0(gene_id, "_", outcome_type, "_GTExColon_outcome.csv"))
-      fwrite(exposure_lz, paste0(gene_id, "_", outcome_type, "_GTExColon_exposure_locuszoom.txt"), sep = "\t")
-      fwrite(outcome_lz, paste0(gene_id, "_", outcome_type, "_GTExColon_outcome_locuszoom.txt"), sep = "\t")
       
     }, error = function(e) {
       print(paste("ERROR:", e$message))

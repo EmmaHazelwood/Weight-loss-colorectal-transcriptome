@@ -118,5 +118,5 @@ topTable(fit, coef="TimeFollowup")
 
 #Save as table
 res <- topTable(fit, coef="TimeFollowup",number=26553)
-write.csv(res,"~/OneDrive - University of Cambridge/Documents/Bristol work/ABHD11 paper/Analysis/Results.csv", row.names = FALSE,col.names = TRUE,quote = FALSE)
+write.csv(res,"Results.csv", row.names = FALSE,col.names = TRUE,quote = FALSE)
 

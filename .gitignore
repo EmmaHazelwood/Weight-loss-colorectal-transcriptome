@@ -18,6 +18,3 @@
 # Pipeline logs and work directories
 *.log
 work/
-
-# Local Claude outputs
-Claude outputs/

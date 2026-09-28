@@ -19,8 +19,7 @@ dat$id.outcome[which(dat$id.outcome=="colon")]<-"Colon"
 dat$id.outcome[which(dat$id.outcome=="proximal")]<-"Proximal"
 dat$id.outcome[which(dat$id.outcome=="distal")]<-"Distal"
 dat$id.outcome[which(dat$id.outcome=="rectal")]<-"Rectal"
-dat$id.outcome[which(dat$id.outcome=="left")]<-"Left"
-dat$Outcome=factor(dat$id.outcome,levels=c("Overall","Colon","Proximal","Distal","Rectal","Left"))
+dat$Outcome=factor(dat$id.outcome,levels=c("Overall","Colon","Proximal","Distal","Rectal"))
 dat$Specific<-"Colon"
 dat$Specific[which(dat$type=="eQTLGen")]<-"Blood"
 dat<-distinct(dat)

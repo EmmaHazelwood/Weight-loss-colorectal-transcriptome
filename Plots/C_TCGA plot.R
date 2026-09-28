@@ -5,7 +5,8 @@ library(ggpubr)
 
 dat <- fread("Figures/TCGA.csv")
 dat$Upper_whisker <- dat$`Upper whisker`
-dat$Gene <- factor(dat$Gene, levels = c("ABHD11","ATP5MC2","CHMP2A"))
+dat <- dat[dat$Gene %in% c("ABHD11","CHMP2A"),]
+dat$Gene <- factor(dat$Gene, levels = c("ABHD11","CHMP2A"))
 
 rectal<-dat[dat$Site=="Rectum",]
 colon<-dat[dat$Site=="Colon",]
