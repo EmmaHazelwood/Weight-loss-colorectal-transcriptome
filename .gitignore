@@ -1,0 +1,23 @@
+# macOS / R junk
+.DS_Store
+.Rhistory
+.RData
+.Rproj.user/
+
+# Sequencing / variant data (never commit)
+*.fastq*
+*.fq*
+*.bam
+*.bai
+*.cram
+*.crai
+*.sam
+*.vcf*
+*.bcf
+
+# Pipeline logs and work directories
+*.log
+work/
+
+# Local Claude outputs
+Claude outputs/
