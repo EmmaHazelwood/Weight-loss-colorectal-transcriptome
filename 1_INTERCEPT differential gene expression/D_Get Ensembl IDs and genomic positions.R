@@ -4,7 +4,8 @@ library(tidyverse)
 
 # Read data and get gene information
 merged <- fread("Probes_with_Entrez_ID.csv")
-ensembl <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
+# BioMart is no longer on www.ensembl.org for new releases, so use the Ensembl 115 archive (also fixes the release used)
+ensembl <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl", host = "https://e115.ensembl.org")
 genes <- getBM(filters="entrezgene_id", 
                attributes=c("ensembl_gene_id","entrezgene_id","external_gene_name",
                             "chromosome_name","start_position","end_position"), 

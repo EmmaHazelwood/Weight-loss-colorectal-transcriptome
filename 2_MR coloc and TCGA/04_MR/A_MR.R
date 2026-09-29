@@ -6,6 +6,9 @@ library(MRInstruments)
 library(LDlinkR)
 library(tidyr)
 
+# Restrict all analyses to the differentially expressed genes; the exposure folders also hold files for genes that are not
+de_genes <- unique(fread("data/ABHD11_paper/Differentially_expressed_genes.csv")$ensembl_gene_id)
+
 # Initialize data frames for collecting results across all analyses
 all_fstats <- data.frame()
 all_harmonised <- data.frame()
@@ -246,6 +249,7 @@ run_tissue_eqtl_analysis <- function(pattern, tissue_name, outcome_file, outcome
   x <- dir(path = data_dir, pattern = pattern)
   x <- substr(x, 1, 15)
   x <- unique(x)
+  x <- x[x %in% de_genes]
   
   for (i in 1:length(x)) {
     # Only get files matching both the gene ID AND the clumped pattern
@@ -341,6 +345,7 @@ run_eqtlgen_analysis <- function(outcome_file, outcome_snps, outcome_type, ld_to
   if (!"gene" %in% colnames(exposure_dat)) {
     exposure_dat$gene <- exposure_dat$ensembl_gene_id
   }
+  exposure_dat <- exposure_dat[exposure_dat$gene %in% de_genes, ]
   
   # Identify palindromic SNPs
   palindromic_snps <- exposure_dat$SNP[is_palindromic(exposure_dat$effect_allele.exposure, 

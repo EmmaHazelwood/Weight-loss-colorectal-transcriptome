@@ -25,9 +25,9 @@ dat$Specific[which(dat$type=="eQTLGen")]<-"Blood"
 dat<-distinct(dat)
 
 dat$type[which(dat$type=="eQTLGen")]<-"Blood (eQTLGen)"
-dat$type[which(dat$type=="BARC")]<-"Colon (BARCUVa-Seq)"
+dat$type[which(dat$type=="BARC")]<-"Colon (BarcUVa-Seq)"
 dat$type[which(dat$type=="GTExColon")]<-"Colon (GTEx)"
-dat$Instrument<-factor(dat$type,levels=rev(c("Blood (eQTLGen)","Colon (BARCUVa-Seq)","Colon (GTEx)")))
+dat$Instrument<-factor(dat$type,levels=rev(c("Blood (eQTLGen)","Colon (BarcUVa-Seq)","Colon (GTEx)")))
 
 library(patchwork)
 library(grid)
@@ -37,11 +37,15 @@ uplist<-c("CRTC3", "EIF4ENIF1")  # Alphabetical order
 
 down<-dat[dat$external_gene_name %in% downlist,]
 down$external_gene_name <- factor(down$external_gene_name, levels = downlist)
-down$Instrument <- factor(down$Instrument, levels = c("Blood (eQTLGen)","Colon (BARCUVa-Seq)","Colon (GTEx)"))
+down$Instrument <- factor(down$Instrument, levels = c("Blood (eQTLGen)","Colon (BarcUVa-Seq)","Colon (GTEx)"))
 
 up<-dat[dat$external_gene_name %in% uplist]
 up$external_gene_name <- factor(up$external_gene_name, levels = uplist)
-up$Instrument <- factor(up$Instrument, levels = c("Blood (eQTLGen)","Colon (BARCUVa-Seq)","Colon (GTEx)"))
+up$Instrument <- factor(up$Instrument, levels = c("Blood (eQTLGen)","Colon (BarcUVa-Seq)","Colon (GTEx)"))
+
+# forestplot() orders the y-axis by first appearance, so sort by outcome to give every panel the same order
+down <- down[order(down$Outcome, down$Instrument), ]
+up <- up[order(up$Outcome, up$Instrument), ]
 
 # Combine data to determine shared axis limits
 # For odds ratios, we want symmetry around 1.0 on the OR scale
@@ -73,6 +77,7 @@ for(i in seq_along(downlist)) {
     xlim = xlims_or
   ) +
     scale_color_discrete(type = c("#C03830","#5B31C2","#068D94")) +
+    scale_x_continuous(transform = "log10", breaks = c(0.5, 0.7, 1, 1.5, 2), limits = xlims_or) +
     ggtitle(gene) +
     theme(
       legend.position = "none",
@@ -100,6 +105,7 @@ for(i in seq_along(uplist)) {
     xlim = xlims_or
   ) +
     scale_color_discrete(type = c("#C03830","#5B31C2","#068D94")) +
+    scale_x_continuous(transform = "log10", breaks = c(0.5, 0.7, 1, 1.5, 2), limits = xlims_or) +
     ggtitle(gene) +
     theme(
       legend.position = "none",
@@ -151,8 +157,8 @@ xlab_middle <- ggplot() +
   theme_void() +
   theme(plot.title = element_text(size = 11, hjust = 0.5))
 
-# Arrange: Row 1 = titles (downreg col 1, blank col 2, upreg col 3), Rows 2-3 = plots, Row 4 = x-axis, Row 5 = legend
-p <- (title_down + title_blank + title_up) /
+# Arrange: Row 1 = titles (downreg over cols 1-2, upreg over col 3), Rows 2-3 = plots, Row 4 = x-axis, Row 5 = legend
+p <- (title_down + title_up + plot_layout(widths = c(2, 1))) /
   (plot_list[["ABHD11"]] + plot_list[["ATP5MC2"]] + plot_list[["CRTC3"]]) /
   (plot_list[["CHMP2A"]] + plot_list[["SMAD9"]] + plot_list[["EIF4ENIF1"]]) /
   (xlab_outside + xlab_middle + xlab_outside) /
