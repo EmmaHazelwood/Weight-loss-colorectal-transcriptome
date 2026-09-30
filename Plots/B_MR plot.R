@@ -53,6 +53,9 @@ or_upper <- exp(combined$b + 1.96*combined$se)
 max_ratio <- max(or_upper / 1.0, 1.0 / or_lower)
 xlims_or <- c(1.0 / max_ratio, 1.0 * max_ratio)
 
+# Named so each panel keeps the same colour per dataset, including panels with a single dataset
+instrument_colours <- c("Blood (eQTLGen)" = "#C03830", "Colon (BarcUVa-Seq)" = "#5B31C2", "Colon (GTEx)" = "#068D94")
+
 plot_list <- list()
 
 for(i in seq_along(downlist)) {
@@ -70,7 +73,7 @@ for(i in seq_along(downlist)) {
     logodds = TRUE,
     xlim = xlims_or
   ) +
-    scale_color_discrete(type = c("#C03830","#5B31C2","#068D94")) +
+    scale_colour_manual(values = instrument_colours) +
     scale_x_continuous(transform = "log10", breaks = c(0.5, 0.7, 1, 1.5, 2), limits = xlims_or) +
     ggtitle(gene) +
     theme(
@@ -98,7 +101,7 @@ for(i in seq_along(uplist)) {
     logodds = TRUE,
     xlim = xlims_or
   ) +
-    scale_color_discrete(type = c("#C03830","#5B31C2","#068D94")) +
+    scale_colour_manual(values = instrument_colours) +
     scale_x_continuous(transform = "log10", breaks = c(0.5, 0.7, 1, 1.5, 2), limits = xlims_or) +
     ggtitle(gene) +
     theme(
@@ -121,7 +124,7 @@ p_legend <- ggforestplot::forestplot(
   colour = Instrument,
   logodds = TRUE
 ) +
-  scale_color_discrete(type = c("#C03830","#5B31C2","#068D94")) +
+  scale_colour_manual(values = instrument_colours) +
   theme(legend.position = "bottom") +
   guides(colour = guide_legend(title = "Instrument"))
 
