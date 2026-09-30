@@ -6,10 +6,10 @@ library(MRInstruments)
 library(LDlinkR)
 library(tidyr)
 
-# Restrict all analyses to the differentially expressed genes; the exposure folders also hold files for genes that are not
+# Restrict to differentially expressed genes
 de_genes <- unique(fread("data/ABHD11_paper/Differentially_expressed_genes.csv")$ensembl_gene_id)
 
-# Initialize data frames for collecting results across all analyses
+# Results collected across all analyses
 all_fstats <- data.frame()
 all_harmonised <- data.frame()
 
@@ -66,7 +66,6 @@ find_proxy_snps <- function(snps_for_proxy, exposure_dat, outcome_snps, token = 
         ea <- exposure_dat$effect_allele.exposure[which(exposure_dat$SNP == j)]
         oa <- exposure_dat$other_allele.exposure[which(exposure_dat$SNP == j)]
         
-        # Take first value if multiple rows (shouldn't happen but just in case)
         ea <- ea[1]
         oa <- oa[1]
         
@@ -95,7 +94,6 @@ find_proxy_snps <- function(snps_for_proxy, exposure_dat, outcome_snps, token = 
           # Check if the proxy SNP is palindromic
           if (proxy4$REF != "NA" && proxy4$ALT != "NA") {
             if (!is_palindromic(proxy4$REF, proxy4$ALT)) {
-              # Found a non-palindromic proxy!
               proxy5 <- select(proxy4, missing_snp, RS_Number, REF, ALT)
               proxySNPs <- rbind(proxySNPs, proxy5)
               print(paste("  Found non-palindromic proxy:", proxy4$RS_Number, 
@@ -137,23 +135,15 @@ merge_proxy_snps <- function(exposure_dat, proxySNPs, snps_for_proxy) {
 
 # Function to calculate r² and F-statistics
 calculate_r2_and_f <- function(dat, sample_size) {
-  # Check if EAF data is available
-  if (all(is.na(dat$eaf.outcome))) {
-    print("  No EAF data available - skipping r² and F-statistic calculation")
-    return(list(r2 = NA, F_stat = NA, n_snps = nrow(dat)))
-  }
-  
-  # Calculate proportion of variance explained (PVE) for each SNP
-  dat$num <- 2 * (dat$beta.exposure^2) * dat$eaf.outcome * (1 - dat$eaf.outcome)
-  dat$den <- 2 * (dat$beta.exposure^2) * dat$eaf.outcome * (1 - dat$eaf.outcome) + 
-    ((dat$se.exposure^2) * 2 * sample_size * dat$eaf.outcome * (1 - dat$eaf.outcome))
-  dat$pve <- dat$num / dat$den
+  # Variance explained per SNP: 2b^2f(1-f) / [2b^2f(1-f) + 2N se^2 f(1-f)], in which the allele frequency f cancels
+  dat$pve <- dat$beta.exposure^2 / (dat$beta.exposure^2 + sample_size * dat$se.exposure^2)
   
   # Sum PVE across all SNPs (total r²)
   pve_total <- sum(dat$pve, na.rm = TRUE)
   
-  # Calculate F-statistic
-  F_stat <- (pve_total * (sample_size - 2)) / (1 - pve_total)
+  # F-statistic for k instruments (Pierce et al. 2011, Int J Epidemiol)
+  k <- sum(!is.na(dat$pve))
+  F_stat <- (pve_total * (sample_size - k - 1)) / (k * (1 - pve_total))
   
   return(list(r2 = pve_total, F_stat = F_stat, n_snps = nrow(dat)))
 }
@@ -616,7 +606,7 @@ ld_token <- Sys.getenv("LDLINK_TOKEN")
 
 # Define sample sizes for each dataset
 sample_sizes <- list(
-  GTExColon = 686,
+  GTExColon = 580,  # European-ancestry GTEx v8: transverse 306 + sigmoid 274
   BARC = 445
   # eQTLGen sample sizes vary by gene and are in the data file
 )
@@ -651,7 +641,9 @@ for (outcome_name in names(outcomes)) {
     outcome_file <- temp_file
     outcome_snps <- temp_crc$SNP
   } else {
+    # Comma-separated copy of the columns used by read_outcome_data()
     outcome_file <- outcome_info$temp_file
+    fwrite(CRC[, .(SNP, Effect, StdErr, Allele1, Allele2, Freq1)], outcome_file, quote = FALSE)
     outcome_snps <- CRC$SNP
   }
   

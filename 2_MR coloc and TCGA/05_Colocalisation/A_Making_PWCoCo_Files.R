@@ -68,7 +68,6 @@ if (nrow(eqtl_results) > 0) {
         next
       }
       
-      # Format exposure data for harmonization
       exposure_dat <- format_data(
         snps,
         type = "exposure",
@@ -83,7 +82,6 @@ if (nrow(eqtl_results) > 0) {
         pos_col = "position"
       )
       
-      # Read outcome data based on outcome type
       if (outcome_type == "overall") {
         outcome_dat <- read_outcome_data(
           snps = snps$rsid,
@@ -112,13 +110,11 @@ if (nrow(eqtl_results) > 0) {
       
       if (nrow(outcome_dat) == 0) next
       
-      # Harmonize data
       dat <- harmonise_data(exposure_dat, outcome_dat, action = 3)
       dat <- dat[dat$mr_keep == TRUE, ]
       
       if (nrow(dat) == 0) next
       
-      # Create exposure output
       exposure_out <- dat %>%
         dplyr::select(
           SNP = SNP,
@@ -132,7 +128,6 @@ if (nrow(eqtl_results) > 0) {
       
       exposure_out$n <- median(snps$n)
       
-      # Create outcome output
       if (outcome_type == "overall") {
         outcome_out <- dat %>%
           dplyr::select(
@@ -211,6 +206,7 @@ if (nrow(barc_results) > 0) {
       
       barc_window <- data.frame(barc_window)
       
+      # BarcUVa-Seq reports only the minor allele frequency, so A1 frequencies come from the colorectal cancer GWAS
       exposure_dat <- format_data(
         barc_window,
         type = "exposure",
@@ -219,7 +215,6 @@ if (nrow(barc_results) > 0) {
         snp_col = "variant_id",
         beta_col = "slope",
         se_col = "slope_se",
-        eaf_col = "maf",
         effect_allele_col = "ALT",
         other_allele_col = "REF",
         pval_col = "pval_nominal",
@@ -228,6 +223,26 @@ if (nrow(barc_results) > 0) {
       )
       
       if (outcome_type == "overall") {
+        # The overall GWAS has no allele frequencies, so take them from the colon GWAS
+        colon_dat <- read_outcome_data(
+          snps = barc_window$variant_id,
+          filename = outcome_files[["colon"]],
+          sep = " ",
+          snp_col = "SNP",
+          beta_col = "Effect",
+          se_col = "StdErr",
+          effect_allele_col = "Allele1",
+          other_allele_col = "Allele2",
+          eaf_col = "Freq1"
+        )
+        
+        if (nrow(colon_dat) == 0) next
+        
+        dat_colon <- harmonise_data(exposure_dat, colon_dat, action = 3)
+        dat_colon <- dat_colon[dat_colon$mr_keep == TRUE, ]
+        
+        if (nrow(dat_colon) == 0) next
+        
         outcome_dat <- read_outcome_data(
           snps = barc_window$variant_id,
           filename = outcome_files[[outcome_type]],
@@ -239,6 +254,27 @@ if (nrow(barc_results) > 0) {
           other_allele_col = "other_allele",
           pval_col = "p_value"
         )
+        
+        if (nrow(outcome_dat) == 0) next
+        
+        dat <- harmonise_data(exposure_dat, outcome_dat, action = 3)
+        dat <- dat[dat$mr_keep == TRUE, ]
+        
+        if (nrow(dat) == 0) next
+        
+        dat <- dat %>%
+          left_join(
+            dat_colon %>% dplyr::select(SNP, eaf.outcome, effect_allele.exposure, other_allele.exposure),
+            by = "SNP",
+            suffix = c("", ".colon")
+          ) %>%
+          mutate(
+            A1_freq = case_when(
+              effect_allele.exposure == effect_allele.exposure.colon ~ eaf.outcome.colon,
+              effect_allele.exposure == other_allele.exposure.colon ~ 1 - eaf.outcome.colon,
+              TRUE ~ NA_real_
+            )
+          )
       } else {
         outcome_dat <- read_outcome_data(
           snps = barc_window$variant_id,
@@ -251,52 +287,40 @@ if (nrow(barc_results) > 0) {
           other_allele_col = "Allele2",
           eaf_col = "Freq1"
         )
+        
+        if (nrow(outcome_dat) == 0) next
+        
+        dat <- harmonise_data(exposure_dat, outcome_dat, action = 3)
+        dat <- dat[dat$mr_keep == TRUE, ]
+        
+        if (nrow(dat) == 0) next
+        
+        dat$A1_freq <- dat$eaf.outcome
       }
-      
-      if (nrow(outcome_dat) == 0) next
-      
-      dat <- harmonise_data(exposure_dat, outcome_dat, action = 3)
-      dat <- dat[dat$mr_keep == TRUE, ]
-      
-      if (nrow(dat) == 0) next
       
       exposure_out <- dat %>%
         dplyr::select(
           SNP = SNP,
           A1 = effect_allele.exposure,
           A2 = other_allele.exposure,
-          A1_freq = eaf.exposure,
+          A1_freq = A1_freq,
           beta = beta.exposure,
           se = se.exposure,
           p = pval.exposure
         )
       
-      exposure_out$n <- 485
+      exposure_out$n <- 445  # BarcUVa-Seq individuals in the eQTL analysis
       
-      # Create outcome output
-      if (outcome_type == "overall") {
-        outcome_out <- dat %>%
-          dplyr::select(
-            SNP = SNP,
-            A1 = effect_allele.outcome,
-            A2 = other_allele.outcome,
-            A1_freq = eaf.exposure,
-            beta = beta.outcome,
-            se = se.outcome,
-            p = pval.outcome
-          )
-      } else {
-        outcome_out <- dat %>%
-          dplyr::select(
-            SNP = SNP,
-            A1 = effect_allele.outcome,
-            A2 = other_allele.outcome,
-            A1_freq = eaf.outcome,
-            beta = beta.outcome,
-            se = se.outcome,
-            p = pval.outcome
-          )
-      }
+      outcome_out <- dat %>%
+        dplyr::select(
+          SNP = SNP,
+          A1 = effect_allele.outcome,
+          A2 = other_allele.outcome,
+          A1_freq = A1_freq,
+          beta = beta.outcome,
+          se = se.outcome,
+          p = pval.outcome
+        )
       
       outcome_out$n <- sample_sizes[[outcome_type]]$total
       outcome_out$case <- sample_sizes[[outcome_type]]$cases
@@ -322,7 +346,6 @@ if (nrow(gtex_results) > 0) {
   gtex_full$phenotype_id<-substr(gtex_full$phenotype_id,1,15)
   gtex_full<-gtex_full[gtex_full$phenotype_id %in% gtex_results$ensembl_gene_id,]
   
-  #Get rsID and SNP position
   snp_info<-dplyr::select(snp_info,variant_id,rs_id_dbSNP151_GRCh38p7,chr,variant_pos,ref,alt)
   gtex_full<-merge(gtex_full,snp_info)
   
@@ -368,7 +391,6 @@ if (nrow(gtex_results) > 0) {
       
       if (nrow(gtex_window) == 0) next
       
-      # Format exposure data for harmonization
       exposure_dat <- format_data(
         gtex_window,
         type = "exposure",
@@ -383,9 +405,8 @@ if (nrow(gtex_results) > 0) {
         pos_col = "position.exposure"
       )
       
-      # Read outcome data based on outcome type
       if (outcome_type == "overall") {
-        # For overall CRC, first harmonize with colon-specific to get EAF
+        # The overall GWAS has no allele frequencies, so take them from the colon GWAS
         colon_dat <- read_outcome_data(
           snps = gtex_window$rs_id_dbSNP151_GRCh38p7,
           filename = outcome_files[["colon"]],
@@ -400,13 +421,11 @@ if (nrow(gtex_results) > 0) {
         
         if (nrow(colon_dat) == 0) next
         
-        # Harmonize with colon to get EAF
         dat_colon <- harmonise_data(exposure_dat, colon_dat, action = 3)
         dat_colon <- dat_colon[dat_colon$mr_keep == TRUE, ]
         
         if (nrow(dat_colon) == 0) next
         
-        # Now read overall outcome data
         outcome_dat <- read_outcome_data(
           snps = gtex_window$rs_id_dbSNP151_GRCh38p7,
           filename = outcome_files[[outcome_type]],
@@ -421,13 +440,11 @@ if (nrow(gtex_results) > 0) {
         
         if (nrow(outcome_dat) == 0) next
         
-        # Harmonize with overall outcome
         dat <- harmonise_data(exposure_dat, outcome_dat, action = 3)
         dat <- dat[dat$mr_keep == TRUE, ]
         
         if (nrow(dat) == 0) next
         
-        # Add EAF from colon harmonization, adjusting for potential allele flips
         dat <- dat %>%
           left_join(
             dat_colon %>% dplyr::select(SNP, eaf.outcome, effect_allele.exposure, other_allele.exposure),
@@ -435,11 +452,8 @@ if (nrow(gtex_results) > 0) {
             suffix = c("", ".colon")
           ) %>%
           mutate(
-            # Check if alleles are flipped between colon and overall harmonizations
             eaf_from_colon = case_when(
-              # If effect alleles match, use EAF as is
               effect_allele.exposure == effect_allele.exposure.colon ~ eaf.outcome.colon,
-              # If effect alleles are flipped, use 1-EAF
               effect_allele.exposure == other_allele.exposure.colon ~ 1 - eaf.outcome.colon,
               TRUE ~ NA_real_
             )
@@ -460,14 +474,12 @@ if (nrow(gtex_results) > 0) {
         
         if (nrow(outcome_dat) == 0) next
         
-        # Harmonize data
         dat <- harmonise_data(exposure_dat, outcome_dat, action = 3)
         dat <- dat[dat$mr_keep == TRUE, ]
         
         if (nrow(dat) == 0) next
       }
       
-      # Create exposure output
       if (outcome_type == "overall") {
         exposure_out <- dat %>%
           dplyr::select(
@@ -492,9 +504,8 @@ if (nrow(gtex_results) > 0) {
           )
       }
       
-      exposure_out$n <- 686
+      exposure_out$n <- 580  # European-ancestry GTEx v8: transverse 306 + sigmoid 274
       
-      # Create outcome output
       if (outcome_type == "overall") {
         outcome_out <- dat %>%
           dplyr::select(

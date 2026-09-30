@@ -11,7 +11,7 @@ dat$Gene <- factor(dat$Gene, levels = c("ABHD11","CHMP2A"))
 rectal<-dat[dat$Site=="Rectum",]
 colon<-dat[dat$Site=="Colon",]
 
-# Make a violin plot
+# Box plots from TNMplot summary statistics
 p1 <- ggplot(rectal,aes(group=Gene,x=as.factor(Tissue),ymin=Min,lower=Q1,middle=Med,upper=Q3,ymax=Upper_whisker,fill=Tissue)) + 
   geom_boxplot(stat="identity",aes(group = interaction(Gene,Tissue))) +
   scale_x_discrete(name="") +
@@ -51,8 +51,3 @@ p
 
 
 ggsave(filename="TCGA Plot.png", plot=last_plot(),width = 0.35*440, height = 0.5*270, units = "mm",bg="white")
-
-
-
-
-

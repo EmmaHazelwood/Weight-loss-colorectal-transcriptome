@@ -3,7 +3,7 @@ library(data.table)
 
 coloc_files <- list.files(pattern = "_coloc.coloc", full.names = TRUE)
 
-# Keep only gene-outcome-dataset trios with MR evidence (FDR-P < 0.05) in the current MR results; older runs stay in the folder
+# Keep only gene-outcome-dataset trios with MR evidence (FDR-P < 0.05)
 mr_results <- fread("data/ABHD11_paper/MR_Results/MR_combined_results.csv")
 sig_trios <- unique(mr_results[bh_p < 0.05, paste(ensembl_gene_id, id.outcome, type, sep = "_")])
 trio <- sub("_coloc\\.coloc$", "", basename(coloc_files))

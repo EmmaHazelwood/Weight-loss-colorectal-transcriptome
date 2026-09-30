@@ -12,12 +12,12 @@ snps<-fread("data/GTEx-Colon/GTEx_Analysis_2017-06-05_v8_WholeGenomeSeq_838Indiv
 colon<-colon[which(colon$pval<=5e-8),]
 colon$phenotype_id<-substr(colon$phenotype_id,1,15)
 colon<-colon[colon$phenotype_id %in% file$ensembl_gene_id,]
-#separate variant_id column to get chr and SNP position
+#Chromosome and position from the GTEx variant ID
 chromosome<-data.frame(colon$variant_id)
 chromosome$colon.variant_id<- as.character(chromosome$colon.variant_id)
 chromosome_1<-chromosome %>% separate(colon.variant_id, c("CHR", "BP", "other_allele.exposure", "effect_allele.exposure"))
 colon_snp<-cbind(colon, chromosome_1)
-colon_snp$CHR<- as.numeric(gsub("chr", "", colon_snp$CHR)) #remove the "chr" letters
+colon_snp$CHR<- as.numeric(gsub("chr", "", colon_snp$CHR))
 
 #Get rsID
 snps<-dplyr::select(snps,variant_id,rs_id_dbSNP151_GRCh38p7)

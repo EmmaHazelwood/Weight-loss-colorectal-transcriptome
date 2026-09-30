@@ -18,3 +18,8 @@
 # Pipeline logs and work directories
 *.log
 work/
+
+# INTERCEPT array data and per-sample outputs (never commit)
+*.idat
+mapping.txt
+Data for PCA.csv

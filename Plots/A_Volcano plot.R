@@ -1,7 +1,6 @@
 library(ggplot2)
 library(data.table)
 library(ggrepel)
-library(ggrepel)
 
 #Volcano plot
 de<-fread("Results.csv")
@@ -14,11 +13,10 @@ de$diffexpressed[de$logFC < -log2(1.3) & de$P.Value<=p_cut] <- "Downregulated"
 de$gene<-NA
 de$label<-""
 
-# Calculate symmetrical x-axis limits
+# Symmetrical x-axis limits
 x_max <- max(abs(de$logFC), na.rm = TRUE)
 x_limits <- c(-x_max, x_max)
 
-# Filter data to points within axis limits for text labels
 de_filtered <- de[abs(de$logFC) <= x_max, ]
 
 p <- ggplot(data=de, aes(x=logFC, y=-log10(P.Value), col=diffexpressed, label=label)) + 

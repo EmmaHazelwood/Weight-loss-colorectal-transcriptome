@@ -1,4 +1,3 @@
-#install.packages("meta")
 #Get SNPs into one df
 library(data.table)
 library(dplyr)
@@ -34,10 +33,7 @@ data_1<-data_2[which(data_2$SNP %in% list[i]),]
   
 meta_res<-metagen(data_1$b, data_1$se, sm="OR", studlab=data_1$dataset)
 
-#view forest plot, remove if not interested
-#forest(metagen(data_1$b, data_1$se, sm="OR", studlab=data_1$dataset))
-
-#save fixed-effects meta-analysis results as a dataframe
+#Fixed-effect meta-analysis results
 fixed<-data.frame( meta_res$TE.fixed, meta_res$seTE.fixed, meta_res$lower.fixed, meta_res$upper.fixed, meta_res$pval.fixed, meta_res$zval.fixed, meta_res$I2)
 
 fixed$test<-"fixed"
@@ -48,7 +44,7 @@ fixed<-rename(fixed, c("beta"="meta_res.TE.fixed", "se"="meta_res.seTE.fixed", "
                        
                        "I2"="meta_res.I2"))
 
-#save random effects meta-analysis as a data.frame
+#Random-effects meta-analysis results
 
 random<-data.frame( meta_res$TE.random, meta_res$seTE.random, meta_res$lower.random, meta_res$upper.random, meta_res$pval.random, meta_res$zval.random, meta_res$I2)
 
@@ -60,7 +56,6 @@ random<-rename(random, c("beta"="meta_res.TE.random", "se"="meta_res.seTE.random
                          
                          "I2"="meta_res.I2"))
 
-#combine fixed and random effects meta-analysis results into 1 dataframe
 
 both<-rbind(fixed, random)
 both$phenotype_id<-ls[a]

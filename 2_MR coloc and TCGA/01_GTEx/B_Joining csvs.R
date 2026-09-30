@@ -1,6 +1,3 @@
-#install.packages("data.table")
-#1
-
 library(data.table)
 
 chr1 <- dir(path="Colon_Transverse.v8.EUR.allpairs.chr1.csv",pattern = "part-00007",full.names = TRUE)
@@ -96,7 +93,6 @@ chrX <- fread(chrX)
 chrX <- data.frame(chrX)
 
 chr <- rbind(chr1,chr2)
-chr <- rbind(chr,chr3)
 chr <- rbind(chr,chr3)
 chr <- rbind(chr,chr4)
 chr <- rbind(chr,chr5)
@@ -215,7 +211,6 @@ chrX <- fread(chrX)
 chrX <- data.frame(chrX)
 
 chr <- rbind(chr1,chr2)
-chr <- rbind(chr,chr3)
 chr <- rbind(chr,chr3)
 chr <- rbind(chr,chr4)
 chr <- rbind(chr,chr5)

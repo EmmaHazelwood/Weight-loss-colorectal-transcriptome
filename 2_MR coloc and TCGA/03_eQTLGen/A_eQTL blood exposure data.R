@@ -21,7 +21,7 @@ exposure_dat4<-extract_instruments(outcomes=file4$id, p1=5e-8)
 
 exposure_dat<-rbind(exposure_dat,exposure_dat2,exposure_dat3,exposure_dat4)
 
-#Find gr37 start and end points
+#GRCh37 gene start positions for cis windows (start ± 500 kb)
 library(biomaRt)
 ensembl = useMart(biomart="ENSEMBL_MART_ENSEMBL", host="grch37.ensembl.org", path="/biomart/martservice" ,dataset="hsapiens_gene_ensembl")
 gene = data.frame(file$ensembl_gene_id)

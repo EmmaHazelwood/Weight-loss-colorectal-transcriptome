@@ -12,7 +12,7 @@ gene_annotation_file <- "data/ABHD11_paper/Differentially_expressed_genes.csv"
 # Keep only genes in the differentially expressed gene list
 tbl_fread <- tbl_fread[tbl_fread$id.exposure %in% fread(gene_annotation_file)$ensembl_gene_id, ]
 
-# BH across all distinct MR tests; must run before the annotation merge, which duplicates genes with several probes
+# BH across all MR tests, before the annotation merge duplicates genes with several probes
 tbl_fread$bh_p <- p.adjust(tbl_fread$pval, method = "BH")
 
 print(paste("Total results loaded:", nrow(tbl_fread)))
@@ -20,15 +20,12 @@ print(paste("Unique genes:", length(unique(tbl_fread$id.exposure))))
 print(paste("Outcome types:", paste(unique(tbl_fread$id.outcome), collapse = ", ")))
 print(paste("Exposure types:", paste(unique(tbl_fread$type), collapse = ", ")))
 
-# Load gene annotation file (if available)
-# This should map Ensembl IDs to gene names
+# Gene annotations
 
 if (file.exists(gene_annotation_file)) {
   print("Loading gene annotations...")
   genes <- fread(gene_annotation_file)
   
-  # Merge with gene annotations
-  # Assumes gene file has columns: ensembl_gene_id, gene_name (or similar)
   tbl_fread <- merge(genes, tbl_fread, 
                      by.x = "ensembl_gene_id", 
                      by.y = "id.exposure", 

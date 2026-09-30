@@ -6,14 +6,14 @@ library(data.table)
 unclumped <- rbindlist(lapply(list.files(pattern = "_colontotal_eqtl\\.csv$"), fread))
 clumped <- rbindlist(lapply(list.files(pattern = "_clumped\\.csv$"), fread), fill = TRUE)
 
-# Rebuild the GTEx variant IDs (chr_pos_ref_alt_b38) split up in D_Extracting genetic instruments_unclumped.R
+# GTEx variant IDs (chr_pos_ref_alt_b38)
 unclumped[, variant_id := paste0("chr", chromosome.exposure, "_", position.exposure, "_",
                                  other_allele.exposure, "_", effect_allele.exposure, "_b38")]
 instruments <- merge(clumped[, .(exposure, SNP, beta = beta.exposure, se = se.exposure, pval = pval.exposure)],
                      unique(unclumped[, .(exposure, SNP, variant_id)]),
                      by = c("exposure", "SNP"))
 
-# The meta-analysis file is ~26 GB, so pre-filter it with grep instead of reading it into R
+# Pre-filter the (~26 GB) meta-analysis file with grep rather than reading it into R
 meta_file <- "data/GTEx-Colon/GTExMetaAnalysisResultsFixed.csv"
 ids_file <- tempfile(fileext = ".txt")
 writeLines(unique(instruments$variant_id), ids_file)

@@ -1,7 +1,5 @@
 library(ggplot2)
 library(data.table)
-library(ggrepel)
-library(ggrepel)
 library(ggforestplot)
 library(dplyr)
 
@@ -47,23 +45,19 @@ up$Instrument <- factor(up$Instrument, levels = c("Blood (eQTLGen)","Colon (Barc
 down <- down[order(down$Outcome, down$Instrument), ]
 up <- up[order(up$Outcome, up$Instrument), ]
 
-# Combine data to determine shared axis limits
-# For odds ratios, we want symmetry around 1.0 on the OR scale
-# So if max OR is 1.2, min should be 1/1.2 = 0.833
+# Shared x-axis limits, symmetrical around 1 on the log OR scale
 combined <- rbind(down, up)
 or_lower <- exp(combined$b - 1.96*combined$se)
 or_upper <- exp(combined$b + 1.96*combined$se)
 
-# Find the maximum distance from 1.0
 max_ratio <- max(or_upper / 1.0, 1.0 / or_lower)
 xlims_or <- c(1.0 / max_ratio, 1.0 * max_ratio)
 
-# Create individual plots for each gene
 plot_list <- list()
 
 for(i in seq_along(downlist)) {
   gene <- downlist[i]
-  show_y <- (i == 1 || i == 3)  # Show y-axis for first column only (plots 1 and 3)
+  show_y <- (i == 1 || i == 3)  # y-axis on the first column only
   
   plot_list[[gene]] <- ggforestplot::forestplot(
     df = down[down$external_gene_name == gene,],
@@ -117,7 +111,7 @@ for(i in seq_along(uplist)) {
     )
 }
 
-# Extract shared legend
+# Shared legend
 p_legend <- ggforestplot::forestplot(
   df = down,
   name = Outcome,
@@ -133,7 +127,6 @@ p_legend <- ggforestplot::forestplot(
 
 legend <- cowplot::get_legend(p_legend)
 
-# Create section titles
 title_down <- ggplot() + 
   labs(title = "Downregulated by weight loss") +
   theme_void() +
@@ -146,7 +139,6 @@ title_up <- ggplot() +
 
 title_blank <- ggplot() + theme_void()
 
-# Create x-axis label
 xlab_outside <- ggplot() + 
   labs(title = "") +
   theme_void() +

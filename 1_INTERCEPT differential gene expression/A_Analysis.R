@@ -35,10 +35,10 @@ table(x$genes$Status)
 options(digits=3)
 head(x$E)
 
-#p-values for how different each probe is (within each sample) from the negative control probes.
+#Sample information
 head(x$targets,1)
 
-#Manually calculate and add in p values
+#Detection p-values relative to the negative control probes
 x$other$Detection <- detectionPValues(x,negctrl="negative")
 
 #Plot MA-plots
@@ -47,42 +47,39 @@ plotMD(x)
 #Box plot of intensity per sample
 P <- boxplot(log2(x$E),range=0,ylab="log2 intensity")
 
-#Estimating the overall proportion of the regular probes that correspond to expressed transcript
+#Estimated proportion of probes corresponding to expressed transcripts
 pe <- propexpr(x)
 dim(pe) <- c(1,24)
 dimnames(pe) <- list()
 pe
 
-#Background correction and normalize:
-#can't use normalizeWithinArrays() as don't have R and G components. backgroundCorrect(method="subtract") ran without errors but did not alter data at all. However, eith method="normexp" this does work.
+#normexp background correction using negative controls, quantile normalisation and log2 transformation; control probes are removed
 y <- neqc(x)
-#neqc() performs normexp background correction using negative controls, then quantile normalizes and finally log2 transforms. It also automatically removes the control probes, leaving only the regular probes in y
 dim(x)
 dim(y)
-#Gets rid of 887
 
-#Compare densities before and after normalization
+#Densities before and after normalisation
 plotDensities(x,legend=FALSE)
 plotDensities(y,legend=FALSE)
 
-#Filter out probes that are not expressed. Keep probes that are expressed in at least three arrays according to a detection p-value of 5%
+#Keep probes expressed (detection P < 0.05) in at least three arrays
 expressed <- rowSums(y$other$Detection < 0.05) >=3
 y <- y[expressed,]
-dim(y) #Excludes 20,770 genes, so 26553 left
+dim(y)
 
-#Multi-dimensional scaling plot - should hopefully group individuals together.
+#Multi-dimensional scaling plot
 plotMDS(y,labels=y$targets$Participant)
 
-#Export raw data for PCA later
+#Normalised expression for PCA
 write.csv(y$E,"Data for PCA.csv",row.names = FALSE,quote=FALSE)
 
 #Differential expression between before and after weight loss
-#Moderated paired t-test - simple, not adjusting for anything
+#Moderated paired t-test, unadjusted
 Time <- factor(y$targets$Time,levels = c("Baseline","Followup"))
 Participant <- factor(y$targets$Participant)
 design <- model.matrix(~Participant+Time)
 fit <- lmFit(y,design)
-fit <- eBayes(fit) #automatically adjusts B statistic by assuming that 1% of the genes are differentially expressed - can be altered
+fit <- eBayes(fit)
 topTable(fit,coef="TimeFollowup")
 
 #Weighting by array quality
@@ -92,20 +89,18 @@ fitw <- lmFit(y,design,weights=arrayw)
 fitw <- eBayes(fitw) 
 topTable(fitw,coef="TimeFollowup")
 
-#Adjusting for within patient correlation
-#Within-patient correlation
+#Within-participant correlation
 design <- model.matrix(~0+Time)
 colnames(design)<- levels(Time)
 dupcor <- duplicateCorrelation(y,design,block=y$targets$Participant)
 dupcor$consensus.correlation
-#within donor is 0.0865 - small, but positive, as expected
 
 design <- model.matrix(~Participant+Time, correlation=dupcor$consensus.correlation)
 fit <- lmFit(y,design,weights=arrayw,block=y$targets$Participant,correlation=dupcor$consensus.correlation)
 fit <-eBayes(fit)
 topTable(fit, coef="TimeFollowup")
 
-#Adjusting for other factors
+#Additional covariates
 Age <- as.numeric(y$targets$Age)
 Sex <- factor(y$targets$Sex,levels = c("F","M"))
 
@@ -114,7 +109,7 @@ design <- model.matrix(~Participant+Time+Age+Sex, correlation=dupcor$consensus.c
 fit <- lmFit(y,design,weights=arrayw,block=y$targets$Participant,correlation=dupcor$consensus.correlation)
 fit <-eBayes(fit)
 topTable(fit, coef="TimeFollowup")
-#Don't want to adjust for BMI as this will remove effect of weight loss
+#Not adjusted for BMI, as weight loss is the exposure
 
 #Save as table
 res <- topTable(fit, coef="TimeFollowup",number=26553)

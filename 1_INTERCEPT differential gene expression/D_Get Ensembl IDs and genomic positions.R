@@ -2,9 +2,8 @@ library(data.table)
 library(biomaRt)
 library(tidyverse)
 
-# Read data and get gene information
 merged <- fread("Probes_with_Entrez_ID.csv")
-# BioMart is no longer on www.ensembl.org for new releases, so use the Ensembl 115 archive (also fixes the release used)
+# Ensembl release 115
 ensembl <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl", host = "https://e115.ensembl.org")
 genes <- getBM(filters="entrezgene_id", 
                attributes=c("ensembl_gene_id","entrezgene_id","external_gene_name",
@@ -29,13 +28,12 @@ genes_collapsed <- genes %>%
 merged_full <- merge(merged, genes_collapsed, by.x="Entrez_Gene_ID", by.y="entrezgene_id",all.x = T,allow.cartesian = F)
 fwrite(merged_full,"differential_expression_analysis_full_results.csv")
 
-# Sex chromosomes: X and Y
-# MHC region: chromosome 6, approximately 28,477,797-33,448,354 bp (GRCh38)
+# Exclude sex chromosomes and the MHC region (chr6:28,477,797-33,448,354, GRCh38)
 filtered_genes <- merged_new[
-  !chromosome_name %in% c("X", "Y") &  # Exclude sex chromosomes
+  !chromosome_name %in% c("X", "Y") &
     !(chromosome_name == "6" & 
         start_position >= 28477797 & 
-        end_position <= 33448354)  # Exclude MHC region on chr6
+        end_position <= 33448354)
 ]
 
 filtered_genes$cis_start_position<-filtered_genes$start_position-500000
