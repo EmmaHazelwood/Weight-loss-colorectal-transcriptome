@@ -160,5 +160,10 @@ p <- (title_down + title_up + plot_layout(widths = c(2, 1))) /
   wrap_elements(legend) +
   plot_layout(heights = c(0.08, 1, 1, 0.05, 0.1), widths = c(1, 1, 1))
 
+# Dashed line between the genes downregulated (left) and upregulated (right) by weight loss. Coordinates are
+# fractions of the saved figure, so need adjusting if the figure size or panel layout changes
+p <- cowplot::ggdraw(p) +
+  cowplot::draw_line(x = c(0.703, 0.703), y = c(0.138, 0.927), colour = "grey40", linetype = "dashed", linewidth = 0.5)
+
 p
-ggsave(filename="Forest Plot Combined.png", plot=last_plot(), width = 0.28*650, height = 0.28*500, units = "mm", bg = "white")
+ggsave(filename="Forest Plot Combined.png", plot=p, width = 0.28*650, height = 0.28*500, units = "mm", bg = "white")
